@@ -1,0 +1,40 @@
+name: calico-csi
+summary: Calico csi ROCK image.
+description: >
+  This rock is a drop in replacement for the
+  docker.io/calico/csi:v3.28.0 image.
+version: v3.28.0
+license: Apache-2.0
+
+base: ubuntu@24.04
+build-base: ubuntu@24.04
+platforms:
+  amd64:
+
+entrypoint-service: csi
+services:
+  csi:
+    command: /usr/bin/csi-driver [ -h ]
+    override: replace
+    startup: enabled
+
+parts:
+  build-deps:
+    plugin: nil
+    build-snaps:
+      - go/1.22/stable
+
+  csi:
+    after: [build-deps]
+    plugin: go
+    source-type: git
+    source: https://github.com/projectcalico/calico
+    source-tag: v3.28.0
+    source-depth: 1
+    override-build: |
+      mkdir -p $CRAFT_PART_INSTALL/usr/bin
+      CGO_ENABLED=0 \
+        go build -o $CRAFT_PART_INSTALL/usr/bin/csi-driver \
+          -v -buildvcs=false \
+          ./pod2daemon/csidriver/main.go
+
