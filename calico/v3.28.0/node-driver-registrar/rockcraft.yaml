@@ -1,0 +1,41 @@
+name: calico-node-driver-registrar
+summary: Calico node-driver-registrar ROCK image.
+description: >
+  This rock is a drop in replacement for the
+  docker.io/calico/node-driver-registrar:v3.28.0 image.
+version: v3.28.0
+license: Apache-2.0
+
+base: ubuntu@24.04
+build-base: ubuntu@24.04
+platforms:
+  amd64:
+
+entrypoint-service: node-driver-registrar
+services:
+  node-driver-registrar:
+    command: /usr/bin/node-driver-registrar [ -h ]
+    override: replace
+    startup: enabled
+
+parts:
+  build-deps:
+    plugin: nil
+    build-snaps:
+      - go/1.22/stable
+
+  node-driver-registrar:
+    after: [build-deps]
+    plugin: go
+    source-type: git
+    source: https://github.com/kubernetes-csi/node-driver-registrar
+    source-tag: master
+    override-build: |
+      git checkout a498c31b88cd31f8ea7bafd0d715a75f9939fa1f
+
+      mkdir -p $CRAFT_PART_INSTALL/usr/bin
+      CGO_ENABLED=0 \
+        go build -o $CRAFT_PART_INSTALL/usr/bin/node-driver-registrar \
+          -v -buildvcs=false \
+          cmd/csi-node-driver-registrar/*.go
+
