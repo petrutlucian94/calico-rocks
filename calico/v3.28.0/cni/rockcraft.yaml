@@ -1,0 +1,84 @@
+name: calico-cni
+summary: Calico cni ROCK image.
+description: >
+  This rock is a drop in replacement for the
+  docker.io/calico/cni:v3.28.0 image.
+version: v3.28.0
+license: Apache-2.0
+
+base: ubuntu@24.04
+build-base: ubuntu@24.04
+platforms:
+  amd64:
+
+entrypoint-service: cni
+services:
+  cni:
+    command: /opt/cni/bin/install [ -h ]
+    override: replace
+    startup: enabled
+
+parts:
+  build-deps:
+    plugin: nil
+    build-snaps:
+      - go/1.22/stable
+
+  cni:
+    after: [build-deps]
+    plugin: go
+    source-type: git
+    source: https://github.com/projectcalico/calico
+    source-tag: v3.28.0
+    source-depth: 1
+    override-build: |
+      GIT_VERSION=v3.28.0
+
+      LDFLAGS="-X main.VERSION=${GIT_VERSION}"
+
+      mkdir -p $CRAFT_PART_INSTALL/opt/cni/bin
+      CGO_ENABLED=0 \
+        go build -o $CRAFT_PART_INSTALL/opt/cni/bin \
+          -v -buildvcs=false -ldflags "$LDFLAGS" \
+          ./cni-plugin/cmd/calico
+
+      CGO_ENABLED=0 \
+        go build -o $CRAFT_PART_INSTALL/opt/cni/bin \
+          -v -buildvcs=false -ldflags "$LDFLAGS" \
+          ./cni-plugin/cmd/install
+
+      cp $CRAFT_PART_INSTALL/opt/cni/bin/calico \
+        $CRAFT_PART_INSTALL/opt/cni/bin/calico-ipam
+
+  cni-plugins:
+    after: [build-deps]
+    plugin: go
+    source-type: git
+    source: https://github.com/projectcalico/containernetworking-plugins
+    source-tag: v1.1.1-calico+go-1.22.5
+    source-depth: 1
+    override-build: |
+      GIT_VERSION=v3.28.0
+
+      LDFLAGS="-X github.com/containernetworking/plugins/pkg/utils/buildversion.BuildVersion=${GIT_VERSION}"
+
+      GOFLAGS='-buildvcs=false' CGO_ENABLED=0 \
+        ./build_linux.sh -ldflags "$LDFLAGS"
+
+      mkdir -p $CRAFT_PART_INSTALL/opt/cni/bin
+      cp bin/host-local bin/portmap bin/loopback bin/tuning bin/bandwidth \
+        $CRAFT_PART_INSTALL/opt/cni/bin/
+
+  flannel:
+    after: [build-deps]
+    plugin: go
+    source-type: git
+    source: https://github.com/projectcalico/flannel-cni-plugin
+    source-tag: v1.2.0-flannel2-go1.22.5
+    source-depth: 1
+    override-build: |
+      VERSION=v1.2.0-flannel2-go1.22.5 \
+        make build_linux
+
+      mkdir -p $CRAFT_PART_INSTALL/opt/cni/bin
+      cp dist/flannel-amd64 $CRAFT_PART_INSTALL/opt/cni/bin/
