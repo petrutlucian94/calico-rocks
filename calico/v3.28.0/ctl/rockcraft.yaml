@@ -1,0 +1,40 @@
+name: calico-ctl
+summary: Calico ctl ROCK image.
+description: >
+  This rock is a drop in replacement for the
+  docker.io/calico/ctl:v3.28.0 image.
+version: v3.28.0
+license: Apache-2.0
+
+base: ubuntu@24.04
+build-base: ubuntu@24.04
+platforms:
+  amd64:
+
+entrypoint-service: ctl
+services:
+  ctl:
+    command: /usr/bin/calicoctl [ -h ]
+    override: replace
+    startup: enabled
+
+parts:
+  build-deps:
+    plugin: nil
+    build-snaps:
+      - go/1.22/stable
+
+  ctl:
+    after: [build-deps]
+    plugin: go
+    source-type: git
+    source: https://github.com/projectcalico/calico
+    source-tag: v3.28.0
+    source-depth: 1
+    override-build: |
+      mkdir -p $CRAFT_PART_INSTALL/usr/bin
+      CGO_ENABLED=0 \
+        go build -o $CRAFT_PART_INSTALL/usr/bin/ctl \
+          -v -buildvcs=false \
+          ./calicoctl/calicoctl/calicoctl.go
+
