@@ -1,0 +1,55 @@
+name: calico-typha
+summary: Calico typha ROCK image.
+description: >
+  This rock is a drop in replacement for the
+  docker.io/calico/typha:v3.28.0 image.
+version: v3.28.0
+license: Apache-2.0
+
+base: ubuntu@24.04
+build-base: ubuntu@24.04
+platforms:
+  amd64:
+
+entrypoint-service: typha
+services:
+  typha:
+    command: /usr/bin/calico-typha [ -h ]
+    override: replace
+    startup: enabled
+
+parts:
+  build-deps:
+    plugin: nil
+    build-snaps:
+      - go/1.22/stable
+
+  typha:
+    after: [build-deps]
+    plugin: go
+    source-type: git
+    source: https://github.com/projectcalico/calico
+    source-tag: v3.28.0
+    source-depth: 1
+    override-build: |
+      PACKAGE_NAME=github.com/projectcalico/calico/apiserver
+
+      TYPHA_BUILD_DATE=`date -u +'%FT%T%z'`
+      TYPHA_GIT_REVISION=`git rev-parse --short HEAD`
+      TYPHA_GIT_DESCRIPTION=`git describe --tags`
+      TYPHA_BUILD_ID=`git rev-parse HEAD || uuidgen | sed 's/-//g'`
+
+
+      LDFLAGS="-X ${PACKAGE_NAME}/pkg/buildinfo.BuildDate=${TYPHA_BUILD_DATE}"
+      LDFLAGS="$LDFLAGS -X ${PACKAGE_NAME}/pkg/buildinfo.GitVersion=${TYPHA_GIT_DESCRIPTION}" \
+      LDFLAGS="$LDFLAGS -X ${PACKAGE_NAME}/pkg/buildinfo.GitRevision=${TYPHA_GIT_REVISION}"
+      LDFLAGS="$LDFLAGS -B 0x${TYPHA_BUILD_ID}"
+
+      mkdir -p $CRAFT_PART_INSTALL/usr/bin
+      CGO_ENABLED=0 \
+        go build -o $CRAFT_PART_INSTALL/usr/bin/calico-typha \
+          -v -buildvcs=false \
+          ./typha/cmd/calico-typha
+
+      mkdir -p $CRAFT_PART_INSTALL/etc/calico
+      cp ./typha/docker-image/typha.cfg $CRAFT_PART_INSTALL/etc/calico/typha.cfg
