@@ -63,6 +63,7 @@ parts:
       - nftables
       - ipset
       - iproute2
+      - libpcap0.8t64
       - libcryptsetup12
       - gzip
       - net-tools
