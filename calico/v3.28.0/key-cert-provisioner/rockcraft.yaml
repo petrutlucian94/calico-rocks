@@ -1,0 +1,39 @@
+name: calico-key-cert-provisioner
+summary: Calico key-cert-provisioner ROCK image.
+description: >
+  This rock is a drop in replacement for the
+  docker.io/calico/key-cert-provisioner:v3.28.0 image.
+version: v3.28.0
+license: Apache-2.0
+
+base: ubuntu@24.04
+build-base: ubuntu@24.04
+platforms:
+  amd64:
+
+entrypoint-service: key-cert-provisioner
+services:
+  key-cert-provisioner:
+    command: /usr/bin/key-cert-provisioner [ -h ]
+    override: replace
+    startup: enabled
+
+parts:
+  build-deps:
+    plugin: nil
+    build-snaps:
+      - go/1.22/stable
+
+  key-cert-provisioner:
+    after: [build-deps]
+    plugin: go
+    source-type: git
+    source: https://github.com/projectcalico/calico
+    source-tag: v3.28.0
+    source-depth: 1
+    override-build: |
+      mkdir -p $CRAFT_PART_INSTALL/usr/bin
+      CGO_ENABLED=0 \
+        go build -o $CRAFT_PART_INSTALL/usr/bin/key-cert-provisioner \
+          -v -buildvcs=false \
+          ./key-cert-provisioner/cmd/main.go

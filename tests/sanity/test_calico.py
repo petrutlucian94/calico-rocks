@@ -164,6 +164,16 @@ def test_typha(version: str):
     assert "Typha, Calico's fan-out proxy." in docker_run.stdout
 
 
+@pytest.mark.parametrize("version", CALICO_VERSIONS)
+def test_key_cert_provisioner(version: str):
+    rock = env_util.get_build_meta_info_for_rock_version(
+        "calico-key-cert-provisioner", version, IMG_PLATFORM
+    )
+
+    docker_run = docker_util.run_in_docker(rock.image, ["/usr/bin/key-cert-provisioner", "--help"])
+    assert "Usage of /usr/bin/key-cert-provisioner" in docker_run.stderr
+
+
 @pytest.mark.parametrize("version", OPERATOR_VERSIONS)
 def test_operator(version: str):
     rock = env_util.get_build_meta_info_for_rock_version(
