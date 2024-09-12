@@ -32,6 +32,80 @@ parts:
     source-tag: v1.34.0
     source-depth: 1
     override-build: |
+      git am --ignore-whitespace << EOF
+      From 2e4c26edd41894a3ec0a05418233800e4a3fdf80 Mon Sep 17 00:00:00 2001
+      From: Lucian Petrut <lpetrut@cloudbasesolutions.com>
+      Date: Thu, 12 Sep 2024 12:03:48 +0000
+      Subject: [PATCH] Fix image component handling, honoring Installation spec
+
+      components.GetReference currently ignores the image prefix and path
+      specified in the "Installation" spec.
+
+      It makes a copy of the image component, appends the configured image
+      path and prefix but then it uses the original component image when
+      looping over the image set.
+
+      The fix is trivial, we just have to use the modified image string.
+      ---
+       pkg/components/references.go | 4 ++--
+       1 file changed, 2 insertions(+), 2 deletions(-)
+
+      diff --git a/pkg/components/references.go b/pkg/components/references.go
+      index bcf6cb95..68be249b 100644
+      --- a/pkg/components/references.go
+      +++ b/pkg/components/references.go
+      @@ -85,12 +85,12 @@ func GetReference(c Component, registry, imagePath, imagePrefix string, is *oper
+        }
+       
+        for _, img := range is.Spec.Images {
+      -   if img.Image == c.Image {
+      +   if img.Image == image {
+            return fmt.Sprintf("%s%s@%s", registry, image, img.Digest), nil
+          }
+        }
+       
+      - return "", fmt.Errorf("ImageSet did not contain image %s", c.Image)
+      + return "", fmt.Errorf("ImageSet did not contain image %s", image)
+       }
+       
+       func ReplaceImagePath(image, imagePath string) string {
+      --
+      2.39.2 (Apple Git-143)
+      EOF
+
+      git am --ignore-whitespace << EOF
+      From d358aa98f1c82171af5afe815909a6d8ade0168a Mon Sep 17 00:00:00 2001
+      From: Lucian Petrut <lpetrut@cloudbasesolutions.com>
+      Date: Thu, 12 Sep 2024 13:58:24 +0000
+      Subject: [PATCH] quick hack: disable image set check
+
+      Calico currently checks if the image set that it received matches
+      the upstream images, which prevents us from using custom images.
+
+      This quick hack will just ignore unknown images. However, we should
+      use the Installation spec to parse the images, just like GetReference
+      does.
+      ---
+       pkg/controller/utils/imageset/imageset.go | 2 +-
+       1 file changed, 1 insertion(+), 1 deletion(-)
+
+      diff --git a/pkg/controller/utils/imageset/imageset.go b/pkg/controller/utils/imageset/imageset.go
+      index a825ddb9..b21aa693 100644
+      --- a/pkg/controller/utils/imageset/imageset.go
+      +++ b/pkg/controller/utils/imageset/imageset.go
+      @@ -122,7 +122,7 @@ func ValidateImageSet(is *operator.ImageSet) error {
+                      }
+              }
+
+      -       if len(unknownImages) == 0 && len(invalidDigests) == 0 {
+      +       if len(invalidDigests) == 0 {
+                      return nil
+              }
+
+      --
+      2.43.0
+      EOF
+
       PACKAGE_NAME=github.com/tigera/operator
 
       GIT_VERSION=`git describe --tags --dirty --always --abbrev=12`
