@@ -170,7 +170,9 @@ def test_key_cert_provisioner(version: str):
         "calico-key-cert-provisioner", version, IMG_PLATFORM
     )
 
-    docker_run = docker_util.run_in_docker(rock.image, ["/usr/bin/key-cert-provisioner", "--help"])
+    docker_run = docker_util.run_in_docker(
+        rock.image, ["/usr/bin/key-cert-provisioner", "--help"]
+    )
     assert "Usage of /usr/bin/key-cert-provisioner" in docker_run.stderr
 
 
@@ -180,7 +182,9 @@ def test_node_driver_registrar(version: str):
         "calico-node-driver-registrar", version, IMG_PLATFORM
     )
 
-    docker_run = docker_util.run_in_docker(rock.image, ["node-driver-registrar", "--help"])
+    docker_run = docker_util.run_in_docker(
+        rock.image, ["node-driver-registrar", "--help"]
+    )
     assert "Usage of node-driver-registrar" in docker_run.stderr
 
 
