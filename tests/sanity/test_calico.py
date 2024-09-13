@@ -174,6 +174,16 @@ def test_key_cert_provisioner(version: str):
     assert "Usage of /usr/bin/key-cert-provisioner" in docker_run.stderr
 
 
+@pytest.mark.parametrize("version", CALICO_VERSIONS)
+def test_node_driver_registrar(version: str):
+    rock = env_util.get_build_meta_info_for_rock_version(
+        "calico-node-driver-registrar", version, IMG_PLATFORM
+    )
+
+    docker_run = docker_util.run_in_docker(rock.image, ["node-driver-registrar", "--help"])
+    assert "Usage of node-driver-registrar" in docker_run.stderr
+
+
 @pytest.mark.parametrize("version", OPERATOR_VERSIONS)
 def test_operator(version: str):
     rock = env_util.get_build_meta_info_for_rock_version(
@@ -182,7 +192,3 @@ def test_operator(version: str):
 
     docker_run = docker_util.run_in_docker(rock.image, ["/usr/bin/operator", "--help"])
     assert "Usage of /usr/bin/operator" in docker_run.stderr
-
-
-# TODO: ghcr.io/petrutlucian94/calico-node-driver-registrar:976fa74c3d434b544410f11a4a51dc4dbac7465d10f5e39bb72452890147f42c-amd64
-# test
