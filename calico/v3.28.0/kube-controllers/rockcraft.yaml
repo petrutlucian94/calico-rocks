@@ -45,3 +45,6 @@ parts:
         go build -o $CRAFT_PART_INSTALL/usr/bin/check-status \
           -v -buildvcs=false -ldflags "$LDFLAGS" \
           ./kube-controllers/cmd/check-status/
+
+      mkdir -p $CRAFT_PART_INSTALL/status
+      chmod a+rw $CRAFT_PART_INSTALL/status
