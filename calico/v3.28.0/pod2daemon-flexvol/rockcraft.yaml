@@ -17,6 +17,8 @@ services:
     command: /pebble_entrypoint.sh [ ]
     override: replace
     startup: enabled
+    on-success: shutdown
+    on-failure: shutdown
 
 parts:
   build-deps:
