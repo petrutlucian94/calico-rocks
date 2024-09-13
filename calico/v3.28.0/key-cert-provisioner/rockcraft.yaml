@@ -14,7 +14,7 @@ platforms:
 entrypoint-service: key-cert-provisioner
 services:
   key-cert-provisioner:
-    command: /usr/bin/key-cert-provisioner [ -h ]
+    command: /usr/bin/key-cert-provisioner [ ]
     override: replace
     startup: enabled
 

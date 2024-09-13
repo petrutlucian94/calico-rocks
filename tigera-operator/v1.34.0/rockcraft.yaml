@@ -14,7 +14,7 @@ platforms:
 entrypoint-service: tigera-operator
 services:
   tigera-operator:
-    command: /usr/bin/operator [ -h ]
+    command: /usr/bin/operator [ ]
     override: replace
     startup: enabled
 

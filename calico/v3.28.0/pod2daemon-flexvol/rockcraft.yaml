@@ -14,7 +14,7 @@ platforms:
 entrypoint-service: pod2daemon-flexvol
 services:
   pod2daemon-flexvol:
-    command: /pebble_entrypoint.sh [ -h ]
+    command: /pebble_entrypoint.sh [ ]
     override: replace
     startup: enabled
 

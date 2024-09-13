@@ -14,7 +14,7 @@ platforms:
 entrypoint-service: ctl
 services:
   ctl:
-    command: /usr/bin/calicoctl [ -h ]
+    command: /usr/bin/calicoctl [ ]
     override: replace
     startup: enabled
 

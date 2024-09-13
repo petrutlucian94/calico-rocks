@@ -14,7 +14,7 @@ platforms:
 entrypoint-service: apiserver
 services:
   apiserver:
-    command: /code/apiserver [ -h ]
+    command: /code/apiserver [ ]
     override: replace
     startup: enabled
 

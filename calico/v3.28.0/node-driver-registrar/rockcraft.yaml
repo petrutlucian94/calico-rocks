@@ -14,7 +14,7 @@ platforms:
 entrypoint-service: node-driver-registrar
 services:
   node-driver-registrar:
-    command: /usr/bin/node-driver-registrar [ -h ]
+    command: /usr/bin/node-driver-registrar [ ]
     override: replace
     startup: enabled
 

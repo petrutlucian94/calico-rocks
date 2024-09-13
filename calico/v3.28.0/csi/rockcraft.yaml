@@ -14,7 +14,7 @@ platforms:
 entrypoint-service: csi
 services:
   csi:
-    command: /usr/bin/csi-driver [ -h ]
+    command: /usr/bin/csi-driver [ ]
     override: replace
     startup: enabled
 

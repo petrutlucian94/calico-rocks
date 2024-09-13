@@ -21,7 +21,7 @@ services:
     # somehow redundant since we have Pebble.
     # For the time being, we'll use the same entry point. This spares
     # us from translating the "runit" configuration.
-    command: start_runit [ -h ]
+    command: start_runit [ ]
     override: replace
     startup: enabled
 

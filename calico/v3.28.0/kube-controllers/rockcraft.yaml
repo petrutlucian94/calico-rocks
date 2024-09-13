@@ -14,7 +14,7 @@ platforms:
 entrypoint-service: kube-controllers
 services:
   kube-controllers:
-    command: /usr/bin/kube-controllers [ -h ]
+    command: /usr/bin/kube-controllers [ ]
     override: replace
     startup: enabled
 

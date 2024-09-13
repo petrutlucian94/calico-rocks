@@ -14,7 +14,7 @@ platforms:
 entrypoint-service: cni
 services:
   cni:
-    command: /opt/cni/bin/install [ -h ]
+    command: /opt/cni/bin/install [ ]
     override: replace
     startup: enabled
 

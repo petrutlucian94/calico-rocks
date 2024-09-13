@@ -14,7 +14,7 @@ platforms:
 entrypoint-service: typha
 services:
   typha:
-    command: /pebble_entrypoint.sh [ -h ]
+    command: /pebble_entrypoint.sh [ ]
     override: replace
     startup: enabled
 
