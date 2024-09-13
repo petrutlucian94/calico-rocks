@@ -14,7 +14,7 @@ platforms:
 entrypoint-service: pod2daemon-flexvol
 services:
   pod2daemon-flexvol:
-    command: /usr/local/bin/flexvol.sh [ -h ]
+    command: /pebble_entrypoint.sh [ -h ]
     override: replace
     startup: enabled
 
@@ -41,3 +41,13 @@ parts:
 
       cp ./pod2daemon/flexvol/docker-image/flexvol.sh \
         $CRAFT_PART_INSTALL/usr/local/bin/
+
+  add-entrypoint:
+    plugin: dump
+    source: .
+    source-type: local
+    stage:
+      - pebble_entrypoint.sh
+    override-stage: |
+      craftctl default
+      chmod a+rx "${CRAFT_PART_INSTALL}/pebble_entrypoint.sh"

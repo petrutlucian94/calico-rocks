@@ -182,3 +182,7 @@ def test_operator(version: str):
 
     docker_run = docker_util.run_in_docker(rock.image, ["/usr/bin/operator", "--help"])
     assert "Usage of /usr/bin/operator" in docker_run.stderr
+
+
+# TODO: ghcr.io/petrutlucian94/calico-node-driver-registrar:976fa74c3d434b544410f11a4a51dc4dbac7465d10f5e39bb72452890147f42c-amd64
+# test
