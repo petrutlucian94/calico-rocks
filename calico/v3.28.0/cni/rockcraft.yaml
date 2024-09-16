@@ -31,21 +31,20 @@ parts:
     source: https://github.com/projectcalico/calico
     source-tag: v3.28.0
     source-depth: 1
+    build-environment:
+      - GIT_VERSION: v3.28.0
+      - CGO_ENABLED: 0
     override-build: |
-      GIT_VERSION=v3.28.0
-
       LDFLAGS="-X main.VERSION=${GIT_VERSION}"
 
       mkdir -p $CRAFT_PART_INSTALL/opt/cni/bin
-      CGO_ENABLED=0 \
-        go build -o $CRAFT_PART_INSTALL/opt/cni/bin \
-          -v -buildvcs=false -ldflags "$LDFLAGS" \
-          ./cni-plugin/cmd/calico
+      go build -o $CRAFT_PART_INSTALL/opt/cni/bin \
+        -v -buildvcs=false -ldflags "$LDFLAGS" \
+        ./cni-plugin/cmd/calico
 
-      CGO_ENABLED=0 \
-        go build -o $CRAFT_PART_INSTALL/opt/cni/bin \
-          -v -buildvcs=false -ldflags "$LDFLAGS" \
-          ./cni-plugin/cmd/install
+      go build -o $CRAFT_PART_INSTALL/opt/cni/bin \
+        -v -buildvcs=false -ldflags "$LDFLAGS" \
+        ./cni-plugin/cmd/install
 
       cp $CRAFT_PART_INSTALL/opt/cni/bin/calico \
         $CRAFT_PART_INSTALL/opt/cni/bin/calico-ipam

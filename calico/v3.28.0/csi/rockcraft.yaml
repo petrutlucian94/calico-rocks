@@ -31,10 +31,12 @@ parts:
     source: https://github.com/projectcalico/calico
     source-tag: v3.28.0
     source-depth: 1
+    build-environment:
+      - CGO_ENABLED: 0
     override-build: |
       mkdir -p $CRAFT_PART_INSTALL/usr/bin
-      CGO_ENABLED=0 \
-        go build -o $CRAFT_PART_INSTALL/usr/bin/csi-driver \
-          -v -buildvcs=false \
-          ./pod2daemon/csidriver/main.go
+
+      go build -o $CRAFT_PART_INSTALL/usr/bin/csi-driver \
+        -v -buildvcs=false \
+        ./pod2daemon/csidriver/main.go
 

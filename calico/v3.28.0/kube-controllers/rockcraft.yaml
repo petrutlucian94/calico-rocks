@@ -31,20 +31,21 @@ parts:
     source: https://github.com/projectcalico/calico
     source-tag: v3.28.0
     source-depth: 1
+    build-environment:
+      - GIT_VERSION: v3.28.0
+      - CGO_ENABLED: 0
     override-build: |
       LDFLAGS="-X main.VERSION=v3.28.0"
 
       mkdir -p $CRAFT_PART_INSTALL/usr/bin
 
-      CGO_ENABLED=0 \
-        go build -o $CRAFT_PART_INSTALL/usr/bin/kube-controllers \
-          -v -buildvcs=false -ldflags "$LDFLAGS" \
-          ./kube-controllers/cmd/kube-controllers/
+      go build -o $CRAFT_PART_INSTALL/usr/bin/kube-controllers \
+        -v -buildvcs=false -ldflags "$LDFLAGS" \
+        ./kube-controllers/cmd/kube-controllers/
 
-      CGO_ENABLED=0 \
-        go build -o $CRAFT_PART_INSTALL/usr/bin/check-status \
-          -v -buildvcs=false -ldflags "$LDFLAGS" \
-          ./kube-controllers/cmd/check-status/
+      go build -o $CRAFT_PART_INSTALL/usr/bin/check-status \
+        -v -buildvcs=false -ldflags "$LDFLAGS" \
+        ./kube-controllers/cmd/check-status/
 
       mkdir -p $CRAFT_PART_INSTALL/status
       chmod a+rw $CRAFT_PART_INSTALL/status

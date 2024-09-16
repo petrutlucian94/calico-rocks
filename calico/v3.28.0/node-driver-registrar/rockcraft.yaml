@@ -29,13 +29,12 @@ parts:
     plugin: go
     source-type: git
     source: https://github.com/kubernetes-csi/node-driver-registrar
-    source-tag: master
+    source-commit: a498c31b88cd31f8ea7bafd0d715a75f9939fa1f
+    build-environment:
+      - CGO_ENABLED: 0
     override-build: |
-      git checkout a498c31b88cd31f8ea7bafd0d715a75f9939fa1f
-
       mkdir -p $CRAFT_PART_INSTALL/usr/bin
-      CGO_ENABLED=0 \
-        go build -o $CRAFT_PART_INSTALL/usr/bin/node-driver-registrar \
-          -v -buildvcs=false \
-          cmd/csi-node-driver-registrar/*.go
+      go build -o $CRAFT_PART_INSTALL/usr/bin/node-driver-registrar \
+        -v -buildvcs=false \
+        cmd/csi-node-driver-registrar/*.go
 

@@ -33,13 +33,14 @@ parts:
     source: https://github.com/projectcalico/calico
     source-tag: v3.28.0
     source-depth: 1
+    build-environment:
+      - CGO_ENABLED: 0
     override-build: |
       mkdir -p $CRAFT_PART_INSTALL/usr/local/bin
 
-      CGO_ENABLED=0 \
-        go build -o $CRAFT_PART_INSTALL/usr/local/bin/flexvol \
-          -v -buildvcs=false \
-          ./pod2daemon/flexvol/flexvoldriver.go
+      go build -o $CRAFT_PART_INSTALL/usr/local/bin/flexvol \
+        -v -buildvcs=false \
+        ./pod2daemon/flexvol/flexvoldriver.go
 
       cp ./pod2daemon/flexvol/docker-image/flexvol.sh \
         $CRAFT_PART_INSTALL/usr/local/bin/

@@ -31,9 +31,10 @@ parts:
     source: https://github.com/projectcalico/calico
     source-tag: v3.28.0
     source-depth: 1
+    build-environment:
+      - PACKAGE_NAME: github.com/projectcalico/calico/apiserver
+      - CGO_ENABLED: 0
     override-build: |
-      PACKAGE_NAME=github.com/projectcalico/calico/apiserver
-
       APISERVER_VERSION=`git describe --tags --dirty --always --abbrev=12`
       APISERVER_BUILD_DATE=`date -u +'%FT%T%z'`
       APISERVER_GIT_REVISION=`git rev-parse --short HEAD`
@@ -45,8 +46,7 @@ parts:
       LDFLAGS="$LDFLAGS -X ${PACKAGE_NAME}/cmd/apiserver/server.GIT_REVISION=${APISERVER_GIT_REVISION}"
 
       mkdir -p $CRAFT_PART_INSTALL/code
-      CGO_ENABLED=0 \
-        go build -o $CRAFT_PART_INSTALL/code/apiserver \
-          -v -buildvcs=false -ldflags "$LDFLAGS" \
-          ./apiserver/cmd/apiserver
+      go build -o $CRAFT_PART_INSTALL/code/apiserver \
+        -v -buildvcs=false -ldflags "$LDFLAGS" \
+        ./apiserver/cmd/apiserver
 

@@ -31,8 +31,10 @@ parts:
     source: https://github.com/projectcalico/calico
     source-tag: v3.28.0
     source-depth: 1
+    build-environment:
+      - CGO_ENABLED: 0
+      - PACKAGE_NAME: github.com/projectcalico/calico/typha
     override-build: |
-      PACKAGE_NAME=github.com/projectcalico/calico/apiserver
 
       TYPHA_BUILD_DATE=`date -u +'%FT%T%z'`
       TYPHA_GIT_REVISION=`git rev-parse --short HEAD`
@@ -46,10 +48,9 @@ parts:
       LDFLAGS="$LDFLAGS -B 0x${TYPHA_BUILD_ID}"
 
       mkdir -p $CRAFT_PART_INSTALL/usr/bin
-      CGO_ENABLED=0 \
-        go build -o $CRAFT_PART_INSTALL/usr/bin/calico-typha \
-          -v -buildvcs=false \
-          ./typha/cmd/calico-typha
+      go build -o $CRAFT_PART_INSTALL/usr/bin/calico-typha \
+        -v -buildvcs=false \
+        ./typha/cmd/calico-typha
 
       mkdir -p $CRAFT_PART_INSTALL/etc/calico
       cp ./typha/docker-image/typha.cfg $CRAFT_PART_INSTALL/etc/calico/typha.cfg

@@ -1,0 +1,38 @@
+From 2e4c26edd41894a3ec0a05418233800e4a3fdf80 Mon Sep 17 00:00:00 2001
+From: Lucian Petrut <lpetrut@cloudbasesolutions.com>
+Date: Thu, 12 Sep 2024 12:03:48 +0000
+Subject: [PATCH] Fix image component handling, honoring Installation spec
+
+components.GetReference currently ignores the image prefix and path
+specified in the "Installation" spec.
+
+It makes a copy of the image component, appends the configured image
+path and prefix but then it uses the original component image when
+looping over the image set.
+
+The fix is trivial, we just have to use the modified image string.
+---
+ pkg/components/references.go | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/pkg/components/references.go b/pkg/components/references.go
+index bcf6cb95..68be249b 100644
+--- a/pkg/components/references.go
++++ b/pkg/components/references.go
+@@ -85,12 +85,12 @@ func GetReference(c Component, registry, imagePath, imagePrefix string, is *oper
+  }
+ 
+  for _, img := range is.Spec.Images {
+-   if img.Image == c.Image {
++   if img.Image == image {
+      return fmt.Sprintf("%s%s@%s", registry, image, img.Digest), nil
+    }
+  }
+ 
+- return "", fmt.Errorf("ImageSet did not contain image %s", c.Image)
++ return "", fmt.Errorf("ImageSet did not contain image %s", image)
+ }
+ 
+ func ReplaceImagePath(image, imagePath string) string {
+--
+2.39.2 (Apple Git-143)

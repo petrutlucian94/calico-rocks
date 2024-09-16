@@ -50,6 +50,11 @@ parts:
       - wget
       - zip
       - libelf-dev
+      # Calico v3.28.0 isn't compatible with libbpf>=1.0 and throws
+      # deprecation warnings (treated as errors) with libbpf v0.7.0.
+      #
+      # Uncomment the following and drop the custom libbpf section
+      # for Calico >= v3.29.0.
       # - libbpf-dev
       # bird deps:
       - libncurses-dev
@@ -69,7 +74,7 @@ parts:
       - net-tools
       - kmod
       - procps
-      # conntrack
+      # conntrack dependencies
       - libnetfilter-cthelper0
       - libnetfilter-cttimeout1
       - libnetfilter-queue1
@@ -85,7 +90,8 @@ parts:
     plugin: nil
     override-build: |
       # Calico v3.28.0 isn't compatible with libbpf>=1.0.
-      # v0.7.0 has deprecated some helpers.
+      # v0.7.0 has deprecated some helpers, throwing deprecation
+      # warnings (treated as errors).
       cd src
       make install
   node:
@@ -99,10 +105,11 @@ parts:
       # runit gets installed separately as we need to address some
       # conflicting paths.
       - runit
+    build-environment:
+      - GIT_VERSION: v3.28.0
+      - CGO_ENABLED: 1
+      - PACKAGE_NAME: github.com/projectcalico/calico/node
     override-build: |
-      PACKAGE_NAME=github.com/projectcalico/calico/node
-
-      GIT_VERSION=`git describe --tags --dirty --always --abbrev=12`
       BUILD_DATE=`date -u +'%FT%T%z'`
       GIT_REVISION=`git rev-parse --short HEAD`
       GIT_DESCRIPTION=`git describe --tags`
@@ -149,7 +156,6 @@ parts:
       LDFLAGS="$LDFLAGS -X ${PACKAGE_NAME}/buildinfo.GitVersion=${GIT_DESCRIPTION}" \
       LDFLAGS="$LDFLAGS -X ${PACKAGE_NAME}/buildinfo.GitRevision=${GIT_REVISION}"
 
-      export CGO_ENABLED=1
       export CGO_LDFLAGS="-L${LIBBPF_PATH}/${ARCH} -lbpf -lelf -lz"
       export CGO_CFLAGS="-I${LIBBPF_PATH} -I${CALICO_BPF_PATH}"
 
