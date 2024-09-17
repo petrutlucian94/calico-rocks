@@ -10,6 +10,7 @@ base: ubuntu@24.04
 build-base: ubuntu@24.04
 platforms:
   amd64:
+  arm64:
 
 entrypoint-service: tigera-operator
 services:
@@ -36,6 +37,7 @@ parts:
       - CGO_ENABLED: 0
       - PACKAGE_NAME: github.com/tigera/operator
     override-build: |
+      export EMAIL=root@localhost
       git am --ignore-whitespace $CRAFT_PROJECT_DIR/fix_image_component_handling.patch
       git am --ignore-whitespace $CRAFT_PROJECT_DIR/fix_imageset_checks.patch
 
