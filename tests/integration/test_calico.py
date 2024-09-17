@@ -4,13 +4,26 @@
 #
 
 import json
+import platform
 import subprocess
 
 import pytest
 from k8s_test_harness import harness
 from k8s_test_harness.util import env_util, k8s_util
 
-IMG_PLATFORM = "amd64"
+
+def get_image_platform():
+    arch = platform.machine()
+    match arch:
+        case "x86_64":
+            return "amd64"
+        case "aarch64":
+            return "arm64"
+        case _:
+            raise Exception(f"Unsupported cpu platform: {arch}")
+
+
+IMG_PLATFORM = get_image_platform()
 INSTALL_NAME = "calico"
 
 OPERATOR_NS = "default"

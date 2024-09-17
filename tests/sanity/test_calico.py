@@ -3,11 +3,24 @@
 # See LICENSE file for licensing details
 #
 
+import platform
+
 import pytest
 from k8s_test_harness.util import docker_util, env_util
 
-# In the future, we may also test ARM
-IMG_PLATFORM = "amd64"
+
+def get_image_platform():
+    arch = platform.machine()
+    match arch:
+        case "x86_64":
+            return "amd64"
+        case "aarch64":
+            return "arm64"
+        case _:
+            raise Exception(f"Unsupported cpu platform: {arch}")
+
+
+IMG_PLATFORM = get_image_platform()
 
 CALICO_VERSIONS = ["v3.28.0"]
 OPERATOR_VERSIONS = ["v1.34.0"]
