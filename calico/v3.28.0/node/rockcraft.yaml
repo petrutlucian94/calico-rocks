@@ -10,6 +10,7 @@ base: ubuntu@24.04
 build-base: ubuntu@24.04
 platforms:
   amd64:
+  arm64:
 
 environment:
   SVDIR: /etc/service/enabled
@@ -117,7 +118,19 @@ parts:
       CALICO_BPF_PATH=$CRAFT_PART_BUILD/felix/bpf-gpl
       # vendorized libbpf path
       LIBBPF_PATH=$CALICO_BPF_PATH/include/libbpf/src/
-      ARCH=amd64
+
+      case `arch` in
+        amd64 | x86_64)
+          export ARCH=amd64
+          ;;
+        arm64 | aarch64)
+          export ARCH=arm64
+          ;;
+      *)
+        echo "Unupported cpu architecture: $(arch)"
+          exit 1
+          ;;
+      esac
 
       mkdir -p felix/bpf-gpl/include/libbpf/src/$ARCH
       # The go project expects the vendorized libbpf library (>1.0),
@@ -182,11 +195,28 @@ parts:
       OBJ=obj/
       mkdir -p $DIST
       mkdir -p $OBJ
-      ARCH=amd64 TARGETARCH=amd64 DIST=$DIST OBJ=$OBJ ./create_binaries.sh
+
+      case `arch` in
+        amd64 | x86_64)
+          export ARCH=amd64
+          DIST_SUBDIR="amd64"
+          ;;
+        arm64 | aarch64)
+          export ARCH=aarch64
+          DIST_SUBDIR="arm64"
+          ;;
+      *)
+        echo "Unupported cpu architecture: $(arch)"
+          exit 1
+          ;;
+      esac
+      export TARGETARCH=$ARCH
+
+      DIST=$DIST OBJ=$OBJ ./create_binaries.sh
 
       mkdir -p $CRAFT_PART_INSTALL/bin
-      cp -r $DIST/amd64/bird $DIST/amd64/bird6 \
-            $DIST/amd64/birdcl $DIST/amd64/birdcl6 \
+      cp -r $DIST/$DIST_SUBDIR/bird $DIST/$DIST_SUBDIR/bird6 \
+            $DIST/$DIST_SUBDIR/birdcl $DIST/$DIST_SUBDIR/birdcl6 \
             $CRAFT_PART_INSTALL/bin
 
       chmod u+s $CRAFT_PART_INSTALL/bin/bird

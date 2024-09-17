@@ -10,6 +10,7 @@ base: ubuntu@24.04
 build-base: ubuntu@24.04
 platforms:
   amd64:
+  arm64:
 
 entrypoint-service: cni
 services:
@@ -76,8 +77,21 @@ parts:
     source-tag: v1.2.0-flannel2-go1.22.5
     source-depth: 1
     override-build: |
+      case `arch` in
+        amd64 | x86_64)
+          export ARCH=amd64
+          ;;
+        arm64 | aarch64)
+          export ARCH=arm64
+          ;;
+      *)
+        echo "Unupported cpu architecture: $(arch)"
+          exit 1
+          ;;
+      esac
+
       VERSION=v1.2.0-flannel2-go1.22.5 \
         make build_linux
 
       mkdir -p $CRAFT_PART_INSTALL/opt/cni/bin
-      cp dist/flannel-amd64 $CRAFT_PART_INSTALL/opt/cni/bin/
+      cp dist/flannel-$ARCH $CRAFT_PART_INSTALL/opt/cni/bin/
