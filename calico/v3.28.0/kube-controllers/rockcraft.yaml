@@ -1,0 +1,52 @@
+name: calico-kube-controllers
+summary: Calico kube-controllers ROCK image.
+description: >
+  This rock is a drop in replacement for the
+  docker.io/calico/kube-controllers:v3.28.0 image.
+version: v3.28.0
+license: Apache-2.0
+
+base: ubuntu@24.04
+build-base: ubuntu@24.04
+platforms:
+  amd64:
+  arm64:
+
+entrypoint-service: kube-controllers
+services:
+  kube-controllers:
+    command: /usr/bin/kube-controllers [ ]
+    override: replace
+    startup: enabled
+
+parts:
+  build-deps:
+    plugin: nil
+    build-snaps:
+      - go/1.22/stable
+
+  kube-controllers:
+    after: [build-deps]
+    plugin: go
+    source-type: git
+    source: https://github.com/projectcalico/calico
+    source-tag: v3.28.0
+    source-depth: 1
+    build-environment:
+      - GIT_VERSION: v3.28.0
+      - CGO_ENABLED: 0
+    override-build: |
+      LDFLAGS="-X main.VERSION=v3.28.0"
+
+      mkdir -p $CRAFT_PART_INSTALL/usr/bin
+
+      go build -o $CRAFT_PART_INSTALL/usr/bin/kube-controllers \
+        -v -buildvcs=false -ldflags "$LDFLAGS" \
+        ./kube-controllers/cmd/kube-controllers/
+
+      go build -o $CRAFT_PART_INSTALL/usr/bin/check-status \
+        -v -buildvcs=false -ldflags "$LDFLAGS" \
+        ./kube-controllers/cmd/check-status/
+
+      mkdir -p $CRAFT_PART_INSTALL/status
+      chmod a+rw $CRAFT_PART_INSTALL/status

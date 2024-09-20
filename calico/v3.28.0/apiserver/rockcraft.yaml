@@ -1,0 +1,53 @@
+name: calico-apiserver
+summary: Calico apiserver ROCK image.
+description: >
+  This rock is a drop in replacement for the
+  docker.io/calico/apiserver:v3.28.0 image.
+version: v3.28.0
+license: Apache-2.0
+
+base: ubuntu@24.04
+build-base: ubuntu@24.04
+platforms:
+  amd64:
+  arm64:
+
+entrypoint-service: apiserver
+services:
+  apiserver:
+    command: /code/apiserver [ ]
+    override: replace
+    startup: enabled
+
+parts:
+  build-deps:
+    plugin: nil
+    build-snaps:
+      - go/1.22/stable
+
+  apiserver:
+    after: [build-deps]
+    plugin: go
+    source-type: git
+    source: https://github.com/projectcalico/calico
+    source-tag: v3.28.0
+    source-depth: 1
+    build-environment:
+      - PACKAGE_NAME: github.com/projectcalico/calico/apiserver
+      - CGO_ENABLED: 0
+    override-build: |
+      APISERVER_VERSION=`git describe --tags --dirty --always --abbrev=12`
+      APISERVER_BUILD_DATE=`date -u +'%FT%T%z'`
+      APISERVER_GIT_REVISION=`git rev-parse --short HEAD`
+      APISERVER_GIT_DESCRIPTION=`git describe --tags`
+
+      LDFLAGS="-X ${PACKAGE_NAME}/cmd/apiserver/server.VERSION=${APISERVER_VERSION}"
+      LDFLAGS="$LDFLAGS -X ${PACKAGE_NAME}/cmd/apiserver/server.BUILD_DATE=${APISERVER_BUILD_DATE}"
+      LDFLAGS="$LDFLAGS -X ${PACKAGE_NAME}/cmd/apiserver/server.GIT_DESCRIPTION=${APISERVER_GIT_DESCRIPTION}" \
+      LDFLAGS="$LDFLAGS -X ${PACKAGE_NAME}/cmd/apiserver/server.GIT_REVISION=${APISERVER_GIT_REVISION}"
+
+      mkdir -p $CRAFT_PART_INSTALL/code
+      go build -o $CRAFT_PART_INSTALL/code/apiserver \
+        -v -buildvcs=false -ldflags "$LDFLAGS" \
+        ./apiserver/cmd/apiserver
+

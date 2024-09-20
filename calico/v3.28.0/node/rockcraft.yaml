@@ -1,0 +1,248 @@
+name: calico-node
+summary: Calico node ROCK image.
+description: >
+  This rock is a drop in replacement for the
+  docker.io/calico/node:v3.28.0 image.
+version: v3.28.0
+license: Apache-2.0
+
+base: ubuntu@24.04
+build-base: ubuntu@24.04
+platforms:
+  amd64:
+  arm64:
+
+environment:
+  SVDIR: /etc/service/enabled
+
+entrypoint-service: node
+services:
+  node:
+    # The reference image uses the "runit" service runner, which is
+    # somehow redundant since we have Pebble.
+    # For the time being, we'll use the same entry point. This spares
+    # us from translating the "runit" configuration.
+    command: start_runit [ ]
+    override: replace
+    startup: enabled
+
+parts:
+  build-deps:
+    plugin: nil
+    build-snaps:
+      - go/1.22/stable
+    build-packages:
+      - autoconf
+      - automake
+      - clang
+      - clang-16
+      - gcc
+      - g++
+      - iproute2
+      - jq
+      - libcurl4-openssl-dev
+      - libpcap0.8-dev
+      - libtool
+      - llvm
+      - make
+      - libpcre3-dev
+      - pkg-config
+      - protobuf-compiler
+      - wget
+      - zip
+      - libelf-dev
+      # Calico v3.28.0 isn't compatible with libbpf>=1.0 and throws
+      # deprecation warnings (treated as errors) with libbpf v0.7.0.
+      #
+      # Uncomment the following and drop the custom libbpf section
+      # for Calico >= v3.29.0.
+      # - libbpf-dev
+      # bird deps:
+      - libncurses-dev
+      - libreadline-dev
+      - bison
+      - flex
+  runtime-deps:
+    plugin: nil
+    stage-packages:
+      - iptables
+      - nftables
+      - ipset
+      - iproute2
+      - libpcap0.8t64
+      - libcryptsetup12
+      - gzip
+      - net-tools
+      - kmod
+      - procps
+      # conntrack dependencies
+      - libnetfilter-cthelper0
+      - libnetfilter-cttimeout1
+      - libnetfilter-queue1
+      - conntrackd
+      - conntrack
+      - nfct
+  libbpf:
+    after: [build-deps]
+    source: https://github.com/libbpf/libbpf
+    source-tag: v0.6.1
+    source-type: git
+    source-depth: 1
+    plugin: nil
+    override-build: |
+      # Calico v3.28.0 isn't compatible with libbpf>=1.0.
+      # v0.7.0 has deprecated some helpers, throwing deprecation
+      # warnings (treated as errors).
+      cd src
+      make install
+  node:
+    after: [libbpf, runtime-deps]
+    plugin: go
+    source-type: git
+    source: https://github.com/projectcalico/calico
+    source-tag: v3.28.0
+    source-depth: 1
+    stage-packages:
+      # runit gets installed separately as we need to address some
+      # conflicting paths.
+      - runit
+    build-environment:
+      - GIT_VERSION: v3.28.0
+      - CGO_ENABLED: 1
+      - PACKAGE_NAME: github.com/projectcalico/calico/node
+    override-build: |
+      BUILD_DATE=`date -u +'%FT%T%z'`
+      GIT_REVISION=`git rev-parse --short HEAD`
+      GIT_DESCRIPTION=`git describe --tags`
+
+      CALICO_BPF_PATH=$CRAFT_PART_BUILD/felix/bpf-gpl
+      # vendorized libbpf path
+      LIBBPF_PATH=$CALICO_BPF_PATH/include/libbpf/src/
+
+      case `arch` in
+        amd64 | x86_64)
+          export ARCH=amd64
+          ;;
+        arm64 | aarch64)
+          export ARCH=arm64
+          ;;
+      *)
+        echo "Unupported cpu architecture: $(arch)"
+          exit 1
+          ;;
+      esac
+
+      mkdir -p felix/bpf-gpl/include/libbpf/src/$ARCH
+      # The go project expects the vendorized libbpf library (>1.0),
+      # while the filters from bpf-apache and bpf-gpl expect a preinstalled
+      # libbpf<1.0.
+      # Changed in Calico 3.29.0.
+      make -j -C felix/bpf-gpl/include/libbpf/src BUILD_STATIC_ONLY=1 OBJDIR=$ARCH
+      make -j -C felix/bpf-apache all
+      make -j -C felix/bpf-gpl all
+
+      mkdir -p $CRAFT_PART_INSTALL/usr/lib/calico/bpf/
+      cp -r felix/bpf-gpl/bin/* $CRAFT_PART_INSTALL/usr/lib/calico/bpf/
+      cp -r felix/bpf-apache/bin/* $CRAFT_PART_INSTALL/usr/lib/calico/bpf/
+
+      mkdir -p $CRAFT_PART_INSTALL/etc/calico
+      # Remove the default runit service symlink, we'll use calico's structure
+      # instead.
+      rm -f $CRAFT_PART_INSTALL/etc/service
+      cp -r $CRAFT_PART_BUILD/confd/etc/calico/* $CRAFT_PART_INSTALL/etc/calico/
+      cp -r $CRAFT_PART_BUILD/node/filesystem/etc/* $CRAFT_PART_INSTALL/etc/
+      cp -r $CRAFT_PART_BUILD/node/filesystem/sbin $CRAFT_PART_INSTALL/
+
+      # TODO: The reference image includes "runit" service configuration, however
+      # these services aren't actually used. The helm chart defines entry
+      # points that invoke the calico binaries directly.
+      #
+      # These "runit" definitions are included in /etc/service/available and
+      # the reference image sets SVDIR as /etc/service/enabled (unused).
+      #
+      # The problem is that the "runit" package sets /etc/service as a symlink
+      # pointing to "/etc/runit/runsvdir/current", which causes a conflict that
+      # breaks Rockcraft.
+
+      LDFLAGS="-X ${PACKAGE_NAME}/pkg/lifecycle/startup.VERSION=${GIT_VERSION}"
+      LDFLAGS="$LDFLAGS -X ${PACKAGE_NAME}/buildinfo.BuildDate=${BUILD_DATE}"
+      LDFLAGS="$LDFLAGS -X ${PACKAGE_NAME}/buildinfo.GitVersion=${GIT_DESCRIPTION}" \
+      LDFLAGS="$LDFLAGS -X ${PACKAGE_NAME}/buildinfo.GitRevision=${GIT_REVISION}"
+
+      export CGO_LDFLAGS="-L${LIBBPF_PATH}/${ARCH} -lbpf -lelf -lz"
+      export CGO_CFLAGS="-I${LIBBPF_PATH} -I${CALICO_BPF_PATH}"
+
+      mkdir -p $CRAFT_PART_INSTALL/bin
+      go build -o $CRAFT_PART_INSTALL/bin/calico-node \
+        -v -buildvcs=false -ldflags "$LDFLAGS" \
+        ./node/cmd/calico-node/main.go
+
+      go build -o $CRAFT_PART_INSTALL/bin/mountns \
+        -v -buildvcs=false -ldflags "$LDFLAGS" \
+        ./node/cmd/mountns
+
+      chmod u+s $CRAFT_PART_INSTALL/bin/calico-node
+      chmod u+s $CRAFT_PART_INSTALL/bin/mountns
+  bird:
+    after: [build-deps]
+    plugin: go
+    source-type: git
+    source: https://github.com/projectcalico/bird
+    source-tag: feature-ipinip
+    source-depth: 1
+    override-build: |
+      DIST=dist/
+      OBJ=obj/
+      mkdir -p $DIST
+      mkdir -p $OBJ
+
+      case `arch` in
+        amd64 | x86_64)
+          export ARCH=amd64
+          DIST_SUBDIR="amd64"
+          ;;
+        arm64 | aarch64)
+          export ARCH=aarch64
+          DIST_SUBDIR="arm64"
+          ;;
+      *)
+        echo "Unupported cpu architecture: $(arch)"
+          exit 1
+          ;;
+      esac
+      export TARGETARCH=$ARCH
+
+      DIST=$DIST OBJ=$OBJ ./create_binaries.sh
+
+      mkdir -p $CRAFT_PART_INSTALL/bin
+      cp -r $DIST/$DIST_SUBDIR/bird $DIST/$DIST_SUBDIR/bird6 \
+            $DIST/$DIST_SUBDIR/birdcl $DIST/$DIST_SUBDIR/birdcl6 \
+            $CRAFT_PART_INSTALL/bin
+
+      chmod u+s $CRAFT_PART_INSTALL/bin/bird
+      chmod u+s $CRAFT_PART_INSTALL/bin/bird6
+  bpftool:
+    after: [build-deps]
+    plugin: nil
+    source-type: git
+    source: https://github.com/libbpf/bpftool.git
+    source-tag: main
+    source-depth: 1
+    build-packages:
+      - xz-utils
+      - libzstd-dev
+      - libcap-dev
+      - llvm-dev
+      - binutils-dev
+    override-build: |
+      git submodule update --init --recursive
+
+      # libelf requires zstd on Ubuntu 24.04, this hasn't been addressed
+      # in bpftool yet.
+      sed -i 's/-lelf/-lelf -lzstd/g' src/Makefile
+
+      mkdir -p bin
+      EXTRA_CFLAGS=--static OUTPUT=`realpath bin`/ make -C src -j "$(nproc)"
+
+      mkdir -p $CRAFT_PART_INSTALL/bin
+      cp ./bin/bpftool $CRAFT_PART_INSTALL/bin/bpftool

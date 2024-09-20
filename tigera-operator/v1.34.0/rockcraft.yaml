@@ -1,0 +1,49 @@
+name: calico-tigera-operator
+summary: Calico tigera-operator ROCK image.
+description: >
+  This rock is a drop in replacement for the
+  docker.io/tigera/operator:v1.34.0 image.
+version: v1.34.0
+license: Apache-2.0
+
+base: ubuntu@24.04
+build-base: ubuntu@24.04
+platforms:
+  amd64:
+  arm64:
+
+entrypoint-service: tigera-operator
+services:
+  tigera-operator:
+    command: /usr/bin/operator [ ]
+    override: replace
+    startup: enabled
+
+parts:
+  build-deps:
+    plugin: nil
+    build-snaps:
+      - go/1.22/stable
+
+  tigera-operator:
+    after: [build-deps]
+    plugin: go
+    source-type: git
+    source: https://github.com/tigera/operator
+    source-tag: v1.34.0
+    source-depth: 1
+    build-environment:
+      - GIT_VERSION: v1.34.0
+      - CGO_ENABLED: 0
+      - PACKAGE_NAME: github.com/tigera/operator
+    override-build: |
+      export EMAIL=root@localhost
+      git am --ignore-whitespace $CRAFT_PROJECT_DIR/fix_image_component_handling.patch
+      git am --ignore-whitespace $CRAFT_PROJECT_DIR/fix_imageset_checks.patch
+
+      LDFLAGS="-X ${PACKAGE_NAME}/version.VERSION=${GIT_VERSION} -s -w"
+
+      mkdir -p $CRAFT_PART_INSTALL/usr/bin
+      go build -o $CRAFT_PART_INSTALL/usr/bin/operator \
+        -v -buildvcs=false \
+        ./main.go

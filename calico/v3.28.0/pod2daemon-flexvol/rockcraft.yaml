@@ -1,0 +1,57 @@
+name: calico-pod2daemon-flexvol
+summary: Calico pod2daemon-flexvol ROCK image.
+description: >
+  This rock is a drop in replacement for the
+  docker.io/calico/pod2daemon-flexvol:v3.28.0 image.
+version: v3.28.0
+license: Apache-2.0
+
+base: ubuntu@24.04
+build-base: ubuntu@24.04
+platforms:
+  amd64:
+  arm64:
+
+entrypoint-service: pod2daemon-flexvol
+services:
+  pod2daemon-flexvol:
+    command: /pebble_entrypoint.sh [ ]
+    override: replace
+    startup: enabled
+    on-success: shutdown
+    on-failure: shutdown
+
+parts:
+  build-deps:
+    plugin: nil
+    build-snaps:
+      - go/1.22/stable
+
+  pod2daemon-flexvol:
+    after: [build-deps]
+    plugin: go
+    source-type: git
+    source: https://github.com/projectcalico/calico
+    source-tag: v3.28.0
+    source-depth: 1
+    build-environment:
+      - CGO_ENABLED: 0
+    override-build: |
+      mkdir -p $CRAFT_PART_INSTALL/usr/local/bin
+
+      go build -o $CRAFT_PART_INSTALL/usr/local/bin/flexvol \
+        -v -buildvcs=false \
+        ./pod2daemon/flexvol/flexvoldriver.go
+
+      cp ./pod2daemon/flexvol/docker-image/flexvol.sh \
+        $CRAFT_PART_INSTALL/usr/local/bin/
+
+  add-entrypoint:
+    plugin: dump
+    source: .
+    source-type: local
+    stage:
+      - pebble_entrypoint.sh
+    override-stage: |
+      craftctl default
+      chmod a+rx "${CRAFT_PART_INSTALL}/pebble_entrypoint.sh"
