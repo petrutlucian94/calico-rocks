@@ -38,8 +38,6 @@ parts:
       - PACKAGE_NAME: github.com/tigera/operator
     override-build: |
       export EMAIL=root@localhost
-      git am --ignore-whitespace $CRAFT_PROJECT_DIR/fix_image_component_handling.patch
-      git am --ignore-whitespace $CRAFT_PROJECT_DIR/fix_imageset_checks.patch
 
       LDFLAGS="-X ${PACKAGE_NAME}/version.VERSION=${GIT_VERSION} -s -w"
 

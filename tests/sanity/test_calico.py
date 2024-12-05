@@ -11,13 +11,11 @@ from k8s_test_harness.util import docker_util, env_util
 
 def get_image_platform():
     arch = platform.machine()
-    match arch:
-        case "x86_64":
-            return "amd64"
-        case "aarch64":
-            return "arm64"
-        case _:
-            raise Exception(f"Unsupported cpu platform: {arch}")
+    if arch == "x86_64":
+        return "amd64"
+    elif arch == "aarch64":
+        return "arm64"
+    raise Exception(f"Unsupported cpu platform: {arch}")
 
 
 IMG_PLATFORM = get_image_platform()

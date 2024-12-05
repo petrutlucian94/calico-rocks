@@ -14,13 +14,11 @@ from k8s_test_harness.util import env_util, k8s_util
 
 def get_image_platform():
     arch = platform.machine()
-    match arch:
-        case "x86_64":
-            return "amd64"
-        case "aarch64":
-            return "arm64"
-        case _:
-            raise Exception(f"Unsupported cpu platform: {arch}")
+    if arch == "x86_64":
+        return "amd64"
+    elif arch == "aarch64":
+        return "arm64"
+    raise Exception(f"Unsupported cpu platform: {arch}")
 
 
 IMG_PLATFORM = get_image_platform()
@@ -45,7 +43,8 @@ spec: {}
 def get_installation_spec(registry, repo):
     return f"""
 # This section includes base Calico installation configuration.
-# For more information, see: https://docs.tigera.io/calico/latest/reference/installation/api#operator.tigera.io/v1.Installation
+# For more information, see:
+# https://docs.tigera.io/calico/latest/reference/installation/api#operator.tigera.io/v1.Installation
 apiVersion: operator.tigera.io/v1
 kind: Installation
 metadata:
@@ -92,7 +91,6 @@ def get_imageset_spec(operator_version, calico_version):
         "calico-kube-controllers",
         "calico-csi",
         "calico-apiserver",
-        "calico-ctl",
         "calico-pod2daemon-flexvol",
         "calico-key-cert-provisioner",
         "calico-node-driver-registrar",
@@ -105,11 +103,14 @@ def get_imageset_spec(operator_version, calico_version):
             image, version, IMG_PLATFORM
         )
         sha256_digest = get_image_sha256_digest(rock.image)
-        prefix = rock.image.split("/")[1]
+
+        # We're supposed to pass the original image names and new hashes.
+        orig_image = image.replace("calico-tigera-", "tigera/")
+        orig_image = orig_image.replace("calico-", "calico/")
 
         spec["spec"]["images"].append(
             {
-                "image": f"{prefix}/{image}",
+                "image": orig_image,
                 "digest": sha256_digest,
             }
         )
